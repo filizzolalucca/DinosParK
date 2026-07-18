@@ -1,0 +1,2 @@
+# DinosParK
+An iOS app built with SwiftUI that showcases a catalog of dinosaurs with detailed information about each species.  Features Dinosaur list with name and image Dynamic filters by: Alphabetical order Name Locomotion type (🌊 Aquatic, 🦅 Aerial, 🌍 Terrestrial) Detail page for each dinosaur, showing: Species-specific information Map location of where the dinosaur was found/lived Tech Stack SwiftUI MapKit (for location display)

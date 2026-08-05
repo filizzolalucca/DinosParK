@@ -6,76 +6,139 @@
 //
 
 import SwiftUI
+import MapKit
 
 struct PredatorDetail: View {
     let predator: ApexPredator
+    
+    @State var position: MapCameraPosition
+    
+    @Namespace var namespace
     var body: some View {
-        ScrollView {
-            
-            ZStack {
-                //Background image
-                Image(predator.type.backgroundImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 300)
-                //Dino Image
+        GeometryReader { geometry in
+            ScrollView {
                 
-                Image(predator.image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 200)
-            }
-            
-            VStack(alignment: .leading, spacing: 16) {
-                //Dino Name
-                Text(predator.name)
-                    .font(.largeTitle)
-                    .bold()
+                ZStack(alignment: .bottomTrailing) {
+                    //Background image
+                    Image(predator.type.backgroundImage)
+                        .resizable()
+                        .scaledToFit()
+                        .overlay {
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .clear, location: 0.8),
+                                    .init(color: .black, location: 1),
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        }
                     
-                
-                //Current Location
-                
-                //Appear in
-               
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Appears in:")
-                        .font(.headline)
-                    ForEach(predator.movies) { movie in
-                        Text(". \(movie.rawValue)")
-                            .font(.subheadline)
-                    }
+                    //Dino Image
+                    
+                    Image(predator.image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: geometry.size.width/1.5, height: geometry.size.height/3.7)
+                        .scaleEffect(x: -1) //inverte o lado
+                        .shadow(color: .black, radius: 7)
+                        .offset(y: 20) // isso tamambem nao muda o espaco que a view ocupa, somente visualmente sua posicao
                 }
-                
-                
-                //Movies moments
                 
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Movie Moments")
+                    //Dino Name
+                    Text(predator.name)
                         .font(.largeTitle)
+                        .bold()
                     
-                    ForEach(predator.movieScenes) { movieScene in
+                    NavigationLink {
+                        PredatorMap(position: .camera(MapCamera(
+                            centerCoordinate: predator.location,
+                            distance: 1000,
+                            heading: 250,
+                            pitch: 80
+                        )))
+                        .navigationTransition(.zoom(sourceID: 1, in: namespace))
+
                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(movieScene.movie.rawValue)
-                                .font(.subheadline)
-                            Text(movieScene.sceneDescription)
-                                .font(.subheadline)
+                    } label: {
+                        Map(position: $position) {
+                            Annotation(predator.name, coordinate: predator.location) {
+                                Image(systemName: "mappin.and.ellipse")
+                                    .font(.largeTitle)
+                                    .imageScale(.large)
+                                    .symbolEffect(.pulse)
+                            }
+                            .annotationTitles(.hidden)
                         }
+                        .frame(height: 200)
+                        .clipShape(.rect(cornerRadius: 15))
+                        .overlay(alignment: .trailing) {
+                            Image(systemName: "greaterthan")
+                                .imageScale(.large)
+                                .font(.title3)
+                                .padding(.trailing, 5)
+                        }
+                        .overlay(alignment: .topLeading) {
+                            Text("Current Location")
+                                .padding([.leading, .bottom], 5)
+                                .padding(.trailing, 8)
+                                .background(.black.opacity(0.33))
+                                .clipShape(.rect(bottomTrailingRadius: 15))
+                        }
+                        .clipShape(.rect(cornerRadius: 15))
+                        //Appear in
+                    }
+                    .matchedTransitionSource(id: 1, in: namespace)
+                    //Current Location
+                   
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Appears in:")
+                            .font(.headline)
+                        ForEach(predator.movies) { movie in
+                            Text(". \(movie.rawValue)")
+                                .font(.subheadline)
+                            //o cara do curso usou um padding(top,15)
+                        }
+                    }
+                    
+                    
+                    //Movies moments
+                    
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Movie Moments")
+                            .font(.largeTitle)
+                        
+                        ForEach(predator.movieScenes) { movieScene in
                             
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(movieScene.movie.rawValue)
+                                    .font(.title2)
+                                Text(movieScene.sceneDescription)
+                                    .font(.subheadline)
+                            }
+                            
+                        }
+                    }
+                    
+                    Text("Read More:")
+                        .font(.caption)
+                    // Link
+                    if let urlLink = URL(string: predator.link) {
+                        Link(predator.link, destination: urlLink)
+                        .font(.caption)
+                        .foregroundStyle(.blue)
                     }
                 }
+                .padding()
+                .padding(.bottom)
+                .frame(width: geometry.size.width, alignment: .leading)  // estica o VStack
                 
-                // Link
-                if let urlLink = URL(string: predator.link) {
-                    Link(destination: urlLink, label: {
-                        Text("Link irado")
-                    })
-                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)  // estica o VStack
-                .padding(.horizontal)
-           
         }
+        .ignoresSafeArea()
+        .toolbarBackground(.automatic)
         .background(.black)
         .foregroundStyle(.white)
     }
@@ -86,25 +149,28 @@ struct PredatorDetail: View {
 /*
  Anotações da tela:
  
- A VStack po padrão centraliza o conteudo e vai aumentando a partir do centro, a scroll view começa do topo
+ 1 - A VStack por padrão centraliza o conteudo e vai aumentando a partir do centro, a scroll view começa do topo
+ 
+ 2 - Ele usa esse geometryReader para pegar as dimensoes reais da tela e fazer a imagem do dinassourao proporcionalmente igual em diferentes devices
+ 
+ 3 - scaleEffect(x: -1) //inverte o lado, deixa de cabeca para baixo, pode deixar a imagem visualmente maior. apesar de que na organizacao das views o tamanho que ela ocupa permanece o mesmo
+ 
+ 4 - mesmo com uma stack com alinhamento para leading o conteudo nao ficaria alinhado, e necessario adicionar no final da stack a largura como largura da tela, para que a stack ocupe tudo e o alinhamento da stack como leading
+ 
+ 5 - Ponto mais simples, mas basicamente a Preview naturalmente tem com problemas com pilhas de navegação. Para funcionar o clique no mapa ele pos o predator Detail dentro de uma NavigationStack. Duvida, eu preciso de outro NavigationStack , acho que nao pelo oque me parece
  */
 
 #Preview {
-    PredatorDetail(predator: .init(
-        id: 1,
-        name: "Velociraptor",
-        type: .land,
-        latitude: 0,
-        longitude: 0,
-        movies: [
-            .jurassicPark,
-            .jurassicParkIII,
-            .jurassicWorldFallenKingdom,
-            .theLostWorldJurassicPark
-        ],
-        movieScenes: [
-            .init(id: 1, movie: .jurassicPark, sceneDescription: "A velociraptor appears in the very first scene in Jurassic Park when Muldoon and his team try to bring a female into the park. It attacks one of the team members and they are forced to shoot it. They don’t appear then until far later in the film when Ellie and Muldoon have to restore the park’s power systems. Muldoon realises they’re being hunted by them and tells Ellie to run to the power shed as he tracks a Velociraptor with his gun. She restores the power and finds what’s left of Ray and she narrowly escapes from a Velociraptor. Muldoon is still tracking a raptor when the female ambushes him, killing him. The raptors appear again in the visitor center when Lex and Tim are eating. They hide in the kitchen and avoid being detected. They managed to trap one of them and escape. The raptors catch up with the group in the control room so Ellie, Dr. Grant, Tim and Lex escape through the vents and into the main lobby area of the visitor center. They fall to the ground and are about to be attacked by two Velociraptors when the Tyrannosaur appears, killing both of them. The survivors use this opportunity to escape the island.")
-        ],
-        link: "https://jurassicpark.fandom.com/wiki/Velociraptor"
-    ))
+    let predator = Predators().apexPredators[7]
+    NavigationStack {
+        PredatorDetail(
+            predator: predator,
+            position: .camera(
+                MapCamera(
+                    centerCoordinate: predator.location,
+                    distance: 30000
+                )
+            )
+        )
+    }
 }

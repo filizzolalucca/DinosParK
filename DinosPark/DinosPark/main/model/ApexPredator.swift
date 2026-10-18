@@ -108,7 +108,7 @@ enum ApType: String, Codable, CaseIterable, Identifiable {
         case .land:
             return .land
         case .sea:
-            return .air
+            return .sea
         case .all:
             return .air
         }
